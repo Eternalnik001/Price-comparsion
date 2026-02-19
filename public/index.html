@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriceScope — Smart Price Comparison</title>
+  <meta name="description"
+    content="Compare prices across the web instantly. Paste any product URL and find the best deals from top retailers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+  <!-- Background orbs -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">PriceScope</span>
+    </div>
+    <p class="logo-tagline">Find the best price in seconds</p>
+  </header>
+
+  <!-- Hero / Input Section -->
+  <main class="main">
+    <section class="hero">
+      <h1 class="hero-title">Compare Prices <span class="gradient-text">Instantly</span></h1>
+      <p class="hero-subtitle">Paste any product URL below — we'll find the best deals across the web for you.</p>
+
+      <div class="input-card">
+        <div class="input-wrapper">
+          <span class="input-icon">🔗</span>
+          <input type="url" id="productUrl" class="url-input" placeholder="https://example.com/product/..."
+            autocomplete="off" spellcheck="false" />
+          <button id="compareBtn" class="compare-btn" onclick="startComparison()">
+            <span class="btn-text">Compare Prices</span>
+            <span class="btn-icon">→</span>
+          </button>
+        </div>
+        <p class="input-hint">Powered by AI — works with Amazon, Flipkart, and most product pages. Prices shown in ₹
+          INR.</p>
+      </div>
+    </section>
+
+    <!-- Loading State -->
+    <section id="loadingSection" class="loading-section hidden">
+      <div class="loading-card">
+        <div class="spinner-ring"></div>
+        <div class="loading-steps">
+          <p id="loadStep1" class="load-step active">🌐 Rendering page with browser engine...</p>
+          <p id="loadStep2" class="load-step">🤖 AI extracting product data...</p>
+          <p id="loadStep3" class="load-step">₹ Converting prices &amp; comparing...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Error State -->
+    <section id="errorSection" class="error-section hidden">
+      <div class="error-card">
+        <span class="error-icon">⚠️</span>
+        <p id="errorMessage" class="error-message">Something went wrong.</p>
+        <button class="retry-btn" onclick="resetUI()">Try Again</button>
+      </div>
+    </section>
+
+    <!-- Blocked Site Banner -->
+    <section id="blockedSection" class="blocked-section hidden">
+      <div class="blocked-card">
+        <span class="blocked-icon">⛔</span>
+        <div class="blocked-content">
+          <h3 class="blocked-title">Website Access Blocked</h3>
+          <p id="blockedMessage" class="blocked-message"></p>
+          <div class="blocked-search-row">
+            <span class="blocked-search-label">Searching for:</span>
+            <span id="blockedSearchQuery" class="blocked-search-query"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scraped Product Preview -->
+    <section id="sourceSection" class="source-section hidden">
+      <div class="source-label">📦 Product Detected</div>
+      <div class="source-card">
+        <div id="sourceImage" class="source-image-wrap"></div>
+        <div class="source-info">
+          <h2 id="sourceName" class="source-name"></h2>
+          <ul id="sourceDesc" class="source-desc"></ul>
+          <div class="source-price-row">
+            <span class="source-price-label">Listed Price:</span>
+            <span id="sourcePrice" class="source-price-value"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section id="comparisonSection" class="comparison-section hidden">
+      <div class="comparison-header">
+        <h2 class="comparison-title">Price Comparison</h2>
+        <p class="comparison-subtitle">3 results found across the web</p>
+      </div>
+
+      <div id="comparisonGrid" class="comparison-grid">
+        <!-- Cards injected by JS -->
+      </div>
+
+      <div class="legend">
+        <span class="legend-item legend-low">🟢 Lowest Price</span>
+        <span class="legend-item legend-high">🔴 Highest Price</span>
+      </div>
+
+      <button class="reset-btn" onclick="resetUI()">🔄 Compare Another Product</button>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>PriceScope &copy; 2026 &mdash; AI-powered price comparison. All prices shown in ₹ INR. Rates may vary.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
