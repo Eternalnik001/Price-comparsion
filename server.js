@@ -120,7 +120,30 @@ function extractProductNameFromUrl(url) {
   }
 }
 
-// ── Puppeteer: fetch rendered HTML ──
+// ── Detect if running on a cloud environment (Render, Railway, etc.) ──
+const IS_CLOUD = !!process.env.RENDER || !!process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production';
+console.log(`🌐 Environment: ${IS_CLOUD ? 'CLOUD (Puppeteer disabled)' : 'LOCAL'}`);
+
+// ── Axios headers that mimic a real browser closely ──
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'Cache-Control': 'max-age=0',
+  'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+  'Sec-Ch-Ua-Mobile': '?0',
+  'Sec-Ch-Ua-Platform': '"Windows"',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-User': '?1',
+  'Upgrade-Insecure-Requests': '1',
+  'Connection': 'keep-alive',
+  'DNT': '1',
+};
+
+// ── Puppeteer: fetch rendered HTML (local only) ──
 async function fetchRenderedHTML(url) {
   let browser;
   try {
@@ -139,20 +162,18 @@ async function fetchRenderedHTML(url) {
     const page = await browser.newPage();
 
     // Spoof a real modern browser more aggressively
-    await page.setUserAgent(
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
-    );
+    await page.setUserAgent(BROWSER_HEADERS['User-Agent']);
     await page.setExtraHTTPHeaders({
-      'Accept-Language': 'en-GB,en;q=0.9,en-US;q=0.8,hi;q=0.7',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-      'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
-      'Sec-Ch-Ua-Mobile': '?0',
-      'Sec-Ch-Ua-Platform': '"macOS"',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
-      'Sec-Fetch-User': '?1',
-      'Upgrade-Insecure-Requests': '1',
+      'Accept-Language': BROWSER_HEADERS['Accept-Language'],
+      'Accept': BROWSER_HEADERS['Accept'],
+      'Sec-Ch-Ua': BROWSER_HEADERS['Sec-Ch-Ua'],
+      'Sec-Ch-Ua-Mobile': BROWSER_HEADERS['Sec-Ch-Ua-Mobile'],
+      'Sec-Ch-Ua-Platform': BROWSER_HEADERS['Sec-Ch-Ua-Platform'],
+      'Sec-Fetch-Dest': BROWSER_HEADERS['Sec-Fetch-Dest'],
+      'Sec-Fetch-Mode': BROWSER_HEADERS['Sec-Fetch-Mode'],
+      'Sec-Fetch-Site': BROWSER_HEADERS['Sec-Fetch-Site'],
+      'Sec-Fetch-User': BROWSER_HEADERS['Sec-Fetch-User'],
+      'Upgrade-Insecure-Requests': BROWSER_HEADERS['Upgrade-Insecure-Requests'],
     });
 
     // Bypass common webdriver checks
@@ -180,12 +201,8 @@ async function fetchRenderedHTML(url) {
     await new Promise(r => setTimeout(r, 3000));
 
     // Try to dismiss cookie/location popups
-    try {
-      await page.click('#sp-cc-accept', { timeout: 1000 });
-    } catch { }
-    try {
-      await page.click('.a-button-input[aria-labelledby="a-autoid-0-announce"]', { timeout: 1000 });
-    } catch { }
+    try { await page.click('#sp-cc-accept', { timeout: 1000 }); } catch { }
+    try { await page.click('.a-button-input[aria-labelledby="a-autoid-0-announce"]', { timeout: 1000 }); } catch { }
 
     const html = await page.content();
     return html;
@@ -193,6 +210,19 @@ async function fetchRenderedHTML(url) {
     if (browser) await browser.close();
   }
 }
+
+// ── Axios: fetch HTML with browser-like headers ──
+async function fetchWithAxios(url) {
+  const response = await axios.get(url, {
+    headers: BROWSER_HEADERS,
+    timeout: 20000,
+    maxRedirects: 5,
+    validateStatus: (status) => status < 400,
+  });
+  return response.data;
+}
+
+
 
 // ── Cleaner: strip junk from HTML ──
 function cleanHTML(html) {
@@ -293,24 +323,27 @@ app.post('/scrape', async (req, res) => {
   }
 
   try {
-    console.log(`\n🌐 Fetching: ${url}`);
+    console.log(`\n🌐 Fetching: ${url} [${IS_CLOUD ? 'CLOUD/Axios' : 'LOCAL/Puppeteer'}]`);
 
-    // Step 1: Render with Puppeteer
+    // Step 1: Fetch HTML — use Puppeteer locally, Axios on cloud
     let html;
     let fetchFailed = false;
-    try {
-      html = await fetchRenderedHTML(url);
-      console.log(`✅ Puppeteer fetched ${html.length} chars`);
-    } catch (puppeteerErr) {
-      console.warn('⚠️  Puppeteer failed, trying axios:', puppeteerErr.message);
+
+    if (!IS_CLOUD) {
+      // LOCAL: Try Puppeteer first for JS-rendered pages
       try {
-        const response = await axios.get(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          },
-          timeout: 15000,
-        });
-        html = response.data;
+        html = await fetchRenderedHTML(url);
+        console.log(`✅ Puppeteer fetched ${html.length} chars`);
+      } catch (puppeteerErr) {
+        console.warn('⚠️  Puppeteer failed, trying axios:', puppeteerErr.message);
+      }
+    }
+
+    // CLOUD or Puppeteer failed: use Axios with browser headers
+    if (!html) {
+      try {
+        html = await fetchWithAxios(url);
+        console.log(`✅ Axios fetched ${html?.length} chars`);
       } catch (axiosErr) {
         console.warn('⚠️  Axios also failed:', axiosErr.message);
         fetchFailed = true;
