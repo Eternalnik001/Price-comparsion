@@ -2,7 +2,7 @@
    PriceScope — App Logic
    ============================================================ */
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = ''; // Use relative path so it works on any domain (localhost or Render)
 
 let isLoading = false;
 
