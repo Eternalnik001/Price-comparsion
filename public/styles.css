@@ -908,3 +908,22 @@ body {
         padding: 20px;
     }
 }
+/* Welcome Text Styles */
+.welcome-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 0.5rem;
+  animation: slideDown 0.5s ease forwards;
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+@keyframes slideDown {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
